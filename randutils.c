@@ -13,7 +13,14 @@
 #include <string.h>
 #include <sys/time.h>
 
+#ifndef _WIN32
 #include <sys/syscall.h>
+#else
+static int getuid (void)
+{
+	return 1;
+}
+#endif
 
 #include "randutils.h"
 
@@ -30,10 +37,11 @@ THREAD_LOCAL unsigned short ul_jrand_seed[3];
 
 int random_get_fd(void)
 {
-	int i, fd;
+	int i, fd = -1;
 	struct timeval	tv;
 
 	gettimeofday(&tv, 0);
+#ifndef _WIN32
 	fd = open("/dev/urandom", O_RDONLY);
 	if (fd == -1)
 		fd = open("/dev/random", O_RDONLY | O_NONBLOCK);
@@ -42,6 +50,7 @@ int random_get_fd(void)
 		if (i >= 0)
 			fcntl(fd, F_SETFD, i | FD_CLOEXEC);
 	}
+#endif
 	srand((getpid() << 16) ^ getuid() ^ tv.tv_sec ^ tv.tv_usec);
 
 #ifdef DO_JRAND_MIX
